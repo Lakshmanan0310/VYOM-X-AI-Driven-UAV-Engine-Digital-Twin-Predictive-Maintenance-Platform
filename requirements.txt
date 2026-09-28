@@ -1,0 +1,14 @@
+# ENGINE-TWIN: AI-Enabled Real-Time Digital Twin for MALE UAV Aero Piston Engines
+# Compatible with Python 3.10+ / 3.11
+
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+torch>=2.0.0
+scikit-learn>=1.2.0
+shap>=0.42.0
+fastapi>=0.100.0
+uvicorn>=0.22.0
+websockets>=11.0
+pydantic>=2.0.0
+matplotlib>=3.7.0

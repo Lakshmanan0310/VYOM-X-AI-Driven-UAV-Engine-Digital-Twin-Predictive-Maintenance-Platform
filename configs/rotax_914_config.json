@@ -1,0 +1,30 @@
+{
+  "engine_name": "Rotax-914-UL-Turbocharged-Flat-Four",
+  "displacement_litres": 1.211,
+  "cylinders": 4,
+  "rated_power_hp_sealevel": 115.0,
+  "rated_rpm": 5800.0,
+  "idle_rpm": 1600.0,
+  "max_continuous_rpm": 5500.0,
+  "compression_ratio": 9.0,
+  "turbocharged": true,
+  "max_boost_bar": 1.35,
+  "intercooled": false,
+  "altitude_power_derating": [
+    {"altitude_ft": 0, "power_hp": 115.0, "rated_boost_bar": 1.35},
+    {"altitude_ft": 8000, "power_hp": 115.0, "rated_boost_bar": 1.35},
+    {"altitude_ft": 15000, "power_hp": 100.0, "rated_boost_bar": 1.20},
+    {"altitude_ft": 20000, "power_hp": 85.0, "rated_boost_bar": 1.05}
+  ],
+  "nominal_operating_parameters": {
+    "manifold_pressure_idle_bar": 0.95,
+    "manifold_pressure_max_bar": 1.35,
+    "egt_nominal_celsius": 820.0,
+    "cht_nominal_celsius": 135.0,
+    "oil_pressure_nominal_bar": 3.8,
+    "oil_temp_nominal_celsius": 100.0,
+    "fuel_flow_cruise_lph": 18.5,
+    "bus_voltage_nominal_v": 14.0,
+    "vibration_nominal_g_rms": 1.1
+  }
+}

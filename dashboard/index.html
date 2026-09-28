@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ENGINE-TWIN | DRDO MALE UAV Aero Piston Engine Ground Control Station</title>
+<!-- TailwindCSS CDN -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Chart.js & Three.js CDNs -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<!-- FontAwesome Icons -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<script>
+    tailwind.config = { theme: { extend: { colors: {
+      sky:     { 200:'#dfe3d6', 300:'#a9b98f', 400:'#8a9d6a', 500:'#6f8253', 700:'#525f3d', 800:'#3a4326', 900:'#282e1a', 950:'#1a1e11' },
+      emerald: { 300:'#8fe0ac', 400:'#4cff91', 500:'#2fcf74', 700:'#227a4a', 800:'#1a5a38', 950:'#0d2318' },
+      amber:   { 300:'#f0cd7c', 400:'#e7b84b', 500:'#c79a3a', 700:'#8a6a24', 900:'#4a3813', 950:'#2e230c' },
+      red:     { 200:'#ffb3b6', 300:'#ff8b90', 400:'#ff3d45', 700:'#7a2320', 800:'#5e1b19', 900:'#471513', 950:'#2e0f0d' },
+      purple:  { 300:'#b7bcc9', 400:'#93999f', 500:'#767c88', 900:'#22262f', 950:'#161920' },
+      orange:  { 400:'#c98a4a', 900:'#3d2818', 950:'#271a0f' },
+      rose:    { 400:'#c9615f', 900:'#3d1c1b', 950:'#271211' },
+      yellow:  { 400:'#c4b05a', 900:'#3a3315', 950:'#25200e' },
+      slate:   { 100:'#e8ecee', 200:'#d5dadd', 300:'#aab3b7', 400:'#7f8b91', 500:'#5c666b', 700:'#30363a', 800:'#252b2e', 900:'#0d1012' }
+    } } } };
+  </script>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
+    body { font-family: 'Inter', sans-serif; background-color: #050708; color: #aab3b7; }
+    .mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+    .card-panel {
+      position: relative; border-radius: 0 !important;
+      background-color: #0a0d0f; border: 1px solid #1c2124;
+      transition: border-color .2s ease;
+      background-repeat: no-repeat;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px),
+        linear-gradient(to right, #4f5b40 1px, transparent 1px), linear-gradient(to bottom, #4f5b40 1px, transparent 1px),
+        linear-gradient(to left,  #4f5b40 1px, transparent 1px), linear-gradient(to bottom, #4f5b40 1px, transparent 1px),
+        linear-gradient(to right, #4f5b40 1px, transparent 1px), linear-gradient(to top,    #4f5b40 1px, transparent 1px),
+        linear-gradient(to left,  #4f5b40 1px, transparent 1px), linear-gradient(to top,    #4f5b40 1px, transparent 1px);
+      background-size: auto, 9px 1px, 1px 9px, 9px 1px, 1px 9px, 9px 1px, 1px 9px, 9px 1px, 1px 9px;
+      background-position: top left, top left, top left, top right, top right, bottom left, bottom left, bottom right, bottom right;
+    }
+    .card-panel:hover { border-color: #30362c; }
+    .card-panel-header { background-color: #080a0b; border-bottom: 1px solid #1c2124; letter-spacing: .06em; }
+    .btn-fault { background-color: #0d1012; border: 1px solid #30363a; border-radius: 0 !important; transition: all 0.15s ease; }
+    .btn-fault:hover { background-color: #151a1c; border-color: #454d32; }
+    .btn-fault.active-fault { background-color: #5e1b19 !important; border-color: #ff3d45 !important; color: #ffffff !important; }
+    .btn-fault.active-sensor { background-color: #3a4326 !important; border-color: #8a9d6a !important; color: #ffffff !important; }
+    .led-dot { display:inline-block; width:6px; height:6px; border-radius:50%; }
+    #container-3d {
+      background-image:
+        linear-gradient(rgba(111,130,83,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(111,130,83,0.06) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #050708; }
+    ::-webkit-scrollbar-thumb { background: #30363a; border-radius: 0; }
+  
+/* =========================================================
+   GROUND STATION // AEROSPACE CONSOLE THEME
+   UI-only layer: preserves existing IDs, handlers and data flow.
+   ========================================================= */
+:root{
+  --gcs-bg:#020406;
+  --gcs-panel:#05080a;
+  --gcs-panel2:#070a0c;
+  --gcs-line:#252b30;
+  --gcs-line2:#12171b;
+  --gcs-text:#c4cbd0;
+  --gcs-dim:#59636b;
+  --gcs-green:#57ff9a;
+  --gcs-cyan:#4fe5ff;
+  --gcs-amber:#f1c400;
+  --gcs-red:#ff3344;
+  --gcs-purple:#a78bfa;
+}
+html,body{background:var(--gcs-bg)!important;color:var(--gcs-text)!important}
+body{
+  font-family:"JetBrains Mono",monospace!important;
+  letter-spacing:.035em;
+  background:
+    radial-gradient(circle at 50% 38%,rgba(70,85,95,.045),transparent 42%),
+    repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
+    #020406!important;
+}
+body:before{
+  content:"";
+  position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:linear-gradient(rgba(255,255,255,.018) 50%,transparent 50%);
+  background-size:100% 4px;opacity:.16;mix-blend-mode:screen;
+}
+header{
+  height:66px!important;
+  min-height:66px!important;
+  padding:0 20px!important;
+  background:#030507!important;
+  border:1px solid var(--gcs-line)!important;
+  margin:8px 12px 0!important;
+  position:relative;
+}
+header:after{
+  content:"";
+  position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gcs-line),transparent);
+}
+.engine-twin-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+header .text-sm{font-size:14px!important;letter-spacing:.12em!important}
+header .space-x-6{gap:18px!important}
+header .space-x-6>div{padding:0 2px}
+header .text-\[9px\]{font-size:9px!important;letter-spacing:.14em!important;color:#59636b!important}
+header .text-\[11px\]{font-size:10px!important;letter-spacing:.12em!important}
+header button,header #badge-connection{
+  border-radius:0!important;background:#06090b!important;
+  border-color:#293036!important;box-shadow:none!important;
+  text-transform:uppercase;letter-spacing:.08em;
+}
+header #badge-connection{color:var(--gcs-green)!important}
+header #badge-connection .w-2{background:var(--gcs-green)!important;box-shadow:0 0 7px var(--gcs-green)}
+header .text-emerald-400{color:var(--gcs-green)!important}
+header .text-sky-300{color:var(--gcs-cyan)!important}
+header .text-amber-400{color:var(--gcs-amber)!important}
+
+body>div:nth-of-type(1){
+  margin:0 12px!important;
+  min-height:34px!important;height:34px!important;
+  background:#030507!important;border:1px solid var(--gcs-line)!important;
+  border-top:0!important;
+  padding:0 12px!important;
+}
+body>div:nth-of-type(1) .text-\[11px\]{letter-spacing:.12em!important}
+body>div:nth-of-type(1) button{border-radius:0!important;background:#070a0c!important;border-color:#2b3034!important}
+
+/* Flatten the original 3-column wrapper so the existing panels can be
+   positioned like a fixed ground-station console. */
+main{
+  display:grid!important;
+  grid-template-columns:305px minmax(0,1fr) 305px!important;
+  grid-template-rows:minmax(0,1fr) minmax(0,1fr) 178px!important;
+  grid-template-areas:
+    "left center right"
+    "left center right"
+    "b1 b2 b3";
+  gap:10px!important;
+  padding:10px 12px 8px!important;
+  overflow:hidden!important;
+  background:transparent!important;
+}
+main>section{display:contents!important}
+main .card-panel{
+  min-width:0!important;min-height:0!important;
+  border-radius:0!important;
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
+    linear-gradient(180deg,#06090b,#040709)!important;
+  border:1px solid var(--gcs-line)!important;
+  box-shadow:none!important;
+}
+main .card-panel:before{
+  content:"";
+  position:absolute;inset:0;pointer-events:none;
+  border:1px solid rgba(255,255,255,.018);
+}
+main .card-panel:after{
+  content:"";
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,#7c858b 0 10px,transparent 10px calc(100% - 10px),#7c858b calc(100% - 10px)),
+    linear-gradient(#7c858b 0 10px,transparent 10px calc(100% - 10px),#7c858b calc(100% - 10px));
+  background-size:1px 1px,1px 1px;
+  background-position:0 0,0 0;opacity:.0;
+}
+main .card-panel-header{
+  background:#05080a!important;
+  border-bottom:1px solid #242a2f!important;
+  min-height:39px;
+  padding:0 14px!important;
+  text-transform:uppercase;
+  font-size:11px!important;
+  letter-spacing:.11em!important;
+}
+main .card-panel-header i{color:var(--gcs-green)!important}
+main .card-panel-header button{
+  border-radius:0!important;background:#070a0c!important;
+  border:1px solid #2b3136!important;color:#7f8a92!important;
+}
+main .card-panel-header button:hover{color:#d8dde0!important;border-color:#56616a!important}
+
+main>.card-panel:nth-of-type(1){grid-area:center!important}
+main>.card-panel:nth-of-type(2){grid-area:left!important}
+main>.card-panel:nth-of-type(3){grid-area:b1!important}
+main>.card-panel:nth-of-type(4){grid-area:b2!important}
+main>.card-panel:nth-of-type(5){grid-area:b3!important}
+main>.card-panel:nth-of-type(6){
+  grid-area:right!important;
+  margin:0!important;
+}
+main>.card-panel:nth-of-type(7){display:none!important}
+main>.card-panel:nth-of-type(8){display:none!important}
+
+/* Turn the left health matrix into the reference-console stacked instrument. */
+main>.card-panel:nth-of-type(2){
+  display:flex!important;flex-direction:column!important;
+  padding:0!important;overflow:hidden!important;
+}
+main>.card-panel:nth-of-type(2) .grid{
+  display:grid!important;grid-template-columns:1fr!important;
+  gap:0!important;padding:0!important;
+}
+main>.card-panel:nth-of-type(2) .grid>div{
+  border:0!important;border-bottom:1px solid #1b2024!important;
+  background:#05080a!important;min-height:54px!important;
+}
+main>.card-panel:nth-of-type(2) .grid>div:last-child{border-bottom:0!important}
+main>.card-panel:nth-of-type(2) .text-\[10px\]{
+  font-size:9px!important;letter-spacing:.1em!important;color:#69737b!important
+}
+main>.card-panel:nth-of-type(2) .text-xl{
+  font-size:18px!important;color:#dce2e5!important;letter-spacing:.06em!important
+}
+main>.card-panel:nth-of-type(2) .text-emerald-400{color:var(--gcs-green)!important}
+main>.card-panel:nth-of-type(2) .text-sky-300{color:var(--gcs-cyan)!important}
+
+/* Center viewport: remove rounded/cosmetic dashboard feel and make it a
+   sparse technical visualization bay. */
+main>.card-panel:nth-of-type(1){
+  display:flex!important;flex-direction:column!important;
+  overflow:hidden!important;
+}
+main>.card-panel:nth-of-type(1) #container-3d{
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
+    linear-gradient(rgba(77,93,103,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(77,93,103,.035) 1px,transparent 1px),
+    #030608!important;
+  background-size:auto,32px 32px,32px 32px!important;
+}
+main>.card-panel:nth-of-type(1) #container-3d canvas{filter:saturate(.72) brightness(.82)}
+main>.card-panel:nth-of-type(1) .card-panel-header+div{}
+main>.card-panel:nth-of-type(1) .absolute.top-2{
+  color:#59636b!important;letter-spacing:.12em!important
+}
+
+/* Bottom telemetry bays. */
+main>.card-panel:nth-of-type(3),
+main>.card-panel:nth-of-type(4),
+main>.card-panel:nth-of-type(5){
+  padding:0!important;overflow:hidden!important;
+}
+main>.card-panel:nth-of-type(3) .card-panel-header,
+main>.card-panel:nth-of-type(4) .card-panel-header,
+main>.card-panel:nth-of-type(5) .card-panel-header{
+  min-height:34px!important;
+}
+main>.card-panel:nth-of-type(3) canvas,
+main>.card-panel:nth-of-type(4) canvas,
+main>.card-panel:nth-of-type(5) canvas{
+  opacity:.72!important;
+}
+main>.card-panel:nth-of-type(3) .text-slate-300,
+main>.card-panel:nth-of-type(4) .text-slate-300,
+main>.card-panel:nth-of-type(5) .text-slate-300{
+  color:#7c878e!important;
+}
+
+/* Right-side diagnostic stack: create a dark, instrument-like bay. */
+main>.card-panel:nth-of-type(6){
+  padding:0!important;overflow:hidden!important;
+  border-left:1px solid #394148!important;
+}
+main>.card-panel:nth-of-type(6) .p-3{padding:14px!important}
+main>.card-panel:nth-of-type(6) .text-2xl{font-size:20px!important}
+main>.card-panel:nth-of-type(6) .text-emerald-400{color:var(--gcs-green)!important}
+main>.card-panel:nth-of-type(6) .text-sky-300{color:var(--gcs-cyan)!important}
+main>.card-panel:nth-of-type(6) .border-l-4{border-left-width:2px!important;border-left-color:var(--gcs-green)!important}
+
+/* Existing diagnostic and log cards become an always-visible right rail.
+   Use a pseudo rail behind the active diagnostic to preserve information
+   density without touching JS behavior. */
+main>.card-panel:nth-of-type(6):before{
+  content:"PERFORMANCE  /  AI STATUS  /  RUL";
+  display:block;position:absolute;left:12px;top:10px;
+  color:#58636b;font-size:9px;letter-spacing:.16em;
+}
+
+/* Existing footer becomes the mission command strip. */
+body>footer{
+  height:102px!important;min-height:102px!important;
+  padding:7px 12px 8px!important;
+  background:#030507!important;
+  border-top:1px solid #293036!important;
+}
+body>footer .btn-fault{
+  border-radius:0!important;background:#06090b!important;
+  border-color:#252c31!important;
+}
+body>footer .btn-fault:hover{background:#0b0f12!important;border-color:#4a555d!important}
+body>footer .active-fault{
+  background:#140708!important;border-color:var(--gcs-red)!important;
+}
+body>footer .active-sensor{
+  background:#07110d!important;border-color:var(--gcs-green)!important;
+}
+body>footer .text-emerald-400{color:var(--gcs-green)!important}
+body>footer .text-red-400{color:var(--gcs-red)!important}
+body>footer .text-amber-400{color:var(--gcs-amber)!important}
+body>footer .text-slate-400{color:#69747b!important}
+body>footer .rounded{border-radius:0!important}
+
+/* Reference console typography. */
+main .text-xs,main .text-\[10px\],main .text-\[11px\],main .text-\[9px\]{
+  letter-spacing:.07em!important;
+}
+main .font-semibold,main .font-bold{letter-spacing:.055em}
+button,input,select{font-family:"JetBrains Mono",monospace!important}
+
+/* Hide modern rounded utility remnants. */
+.rounded,.rounded-sm,.rounded-md,.rounded-lg,.rounded-xl,.rounded-2xl{
+  border-radius:0!important;
+}
+
+  
+/* DOM-aware placement overrides (cards remain inside their original sections). */
+main>section:nth-child(1)>.card-panel:nth-child(1){grid-area:center!important}
+main>section:nth-child(1)>.card-panel:nth-child(2){grid-area:left!important}
+main>section:nth-child(2)>.card-panel:nth-child(1){grid-area:b1!important}
+main>section:nth-child(2)>.card-panel:nth-child(2){grid-area:b2!important}
+main>section:nth-child(2)>.card-panel:nth-child(3){grid-area:b3!important}
+main>section:nth-child(3)>.card-panel:nth-child(1){grid-area:right!important}
+main>section:nth-child(3)>.card-panel:nth-child(2),
+main>section:nth-child(3)>.card-panel:nth-child(3){display:none!important}
+
+/* Repeat the key visual rules against the actual DOM nesting. */
+main>section:nth-child(1)>.card-panel:nth-child(1),
+main>section:nth-child(1)>.card-panel:nth-child(2),
+main>section:nth-child(2)>.card-panel:nth-child(1),
+main>section:nth-child(2)>.card-panel:nth-child(2),
+main>section:nth-child(2)>.card-panel:nth-child(3),
+main>section:nth-child(3)>.card-panel:nth-child(1){
+  min-width:0!important;min-height:0!important;border-radius:0!important;
+}
+main>section:nth-child(1)>.card-panel:nth-child(1){
+  display:flex!important;flex-direction:column!important;overflow:hidden!important;
+}
+main>section:nth-child(1)>.card-panel:nth-child(1) #container-3d{
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
+    linear-gradient(rgba(77,93,103,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(77,93,103,.035) 1px,transparent 1px),
+    #030608!important;
+  background-size:auto,32px 32px,32px 32px!important;
+}
+main>section:nth-child(1)>.card-panel:nth-child(2){
+  display:flex!important;flex-direction:column!important;padding:0!important;overflow:hidden!important;
+}
+main>section:nth-child(2)>.card-panel:nth-child(1),
+main>section:nth-child(2)>.card-panel:nth-child(2),
+main>section:nth-child(2)>.card-panel:nth-child(3){
+  padding:0!important;overflow:hidden!important;
+}
+main>section:nth-child(3)>.card-panel:nth-child(1){
+  padding:0!important;overflow:hidden!important;border-left:1px solid #394148!important;
+}
+
+  
+/* ===== GCS TEMPLATE LAYOUT ===== */
+main{
+  display:grid!important;
+  grid-template-columns:305px minmax(0,1fr) 305px!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  grid-template-areas:"left center right"!important;
+  gap:10px!important;
+  padding:10px 12px 8px!important;
+  overflow:hidden!important;
+}
+.gcs-left{grid-area:left;display:grid;grid-template-rows:92px 126px 150px minmax(0,1fr);gap:10px;min-height:0}
+.gcs-center{grid-area:center;display:grid;grid-template-rows:minmax(0,1fr) 168px;gap:10px;min-width:0;min-height:0}
+.gcs-center-bottom{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;min-height:0}
+.gcs-right{grid-area:right;display:grid;grid-template-rows:minmax(0,1.25fr) minmax(0,1fr) 142px;gap:10px;min-height:0}
+.gcs-left>.card-panel,.gcs-center>.card-panel,.gcs-center-bottom>.card-panel,.gcs-right>.card-panel{
+  min-width:0!important;min-height:0!important;margin:0!important;border-radius:0!important;
+}
+.gcs-mini-panel{
+  position:relative;overflow:hidden;background:#05080a;
+  border:1px solid #252b30;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px);
+}
+.gcs-mini-title{
+  height:35px;padding:10px 13px 0;
+  color:#737e86;font-size:10px;font-weight:600;letter-spacing:.15em;
+  border-bottom:1px solid #20262b;
+}
+.gcs-mini-title:before{content:"";display:inline-block;width:7px;height:7px;margin-right:8px;border:1px solid #58636b}
+.gcs-stage-list{padding:7px 10px;display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.gcs-stage-row{
+  height:31px;border:1px solid #242b30;background:#070a0c;
+  display:flex;align-items:center;gap:7px;padding:0 8px;
+  color:#8d979e;font-size:9px;letter-spacing:.08em;
+}
+.gcs-stage-num{color:#4f5960}
+.gcs-stage-mark{width:7px;height:7px;border:1px solid currentColor;display:inline-block}
+.gcs-stage-mark.cyan{color:#4fe5ff}.gcs-stage-mark.green{color:#57ff9a}
+.gcs-stage-mark.amber{color:#f1c400}.gcs-stage-mark.red{color:#ff3344}
+.gcs-feed-row{
+  height:22px;padding:0 12px;display:flex;justify-content:space-between;align-items:center;
+  border-bottom:1px dashed #171d21;color:#59646b;font-size:8px;letter-spacing:.09em;
+}
+.gcs-feed-row span:last-child{color:#9aa4aa}
+.gcs-alert-panel{display:flex;flex-direction:column}
+.gcs-alert-ring{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.gcs-alert-core{
+  width:78px;height:78px;border:1px solid #667077;border-radius:50%;
+  position:relative;box-shadow:0 0 0 7px #070a0c,0 0 0 8px #2b3136;
+}
+.gcs-alert-core.alert-ring-nominal{border-color:#57ff9a;box-shadow:0 0 0 7px #070a0c,0 0 0 8px #245c3e}
+.gcs-alert-core.alert-ring-warning{border-color:#f1c400;box-shadow:0 0 0 7px #070a0c,0 0 0 8px #66530a;animation:alert-ring-pulse-warning 2s ease-in-out infinite}
+.gcs-alert-core.alert-ring-critical{border-color:#ff3344;box-shadow:0 0 0 7px #070a0c,0 0 0 8px #6b1d27;animation:alert-ring-pulse-critical .8s ease-in-out infinite}
+@keyframes alert-ring-pulse-warning{50%{box-shadow:0 0 0 7px #070a0c,0 0 0 10px #a1840c}}
+@keyframes alert-ring-pulse-critical{50%{box-shadow:0 0 0 7px #070a0c,0 0 0 13px #d32639}}
+.gcs-alert-core:before{
+  content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;
+  transform:translate(-50%,-50%) rotate(45deg);border:1px solid #57ff9a;
+}
+.gcs-alert-core:after{
+  content:"!";position:absolute;left:50%;top:50%;transform:translate(-50%,-55%);
+  color:#57ff9a;font-size:14px;
+}
+.gcs-alert-label{font-size:9px;letter-spacing:.14em;color:#57ff9a}
+.gcs-alert-label.alert-ring-label-nominal{color:#57ff9a}
+.gcs-alert-label.alert-ring-label-warning{color:#f1c400}
+.gcs-alert-label.alert-ring-label-critical{color:#ff3344}
+.gcs-left .card-panel{
+  background:#05080a!important;border-color:#252b30!important;overflow:hidden;
+}
+.gcs-left .card-panel .card-panel-header{min-height:38px!important}
+.gcs-left .card-panel .grid{gap:5px!important}
+.gcs-left .card-panel .grid>div{
+  border-radius:0!important;background:#06090b!important;border-color:#22282d!important;
+}
+.gcs-center>.card-panel{
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
+    #030608!important;
+  border-color:#2b3238!important;overflow:hidden!important;
+}
+.gcs-center>.card-panel:first-child #container-3d{
+  background:
+    repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px),
+    linear-gradient(rgba(80,94,104,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(80,94,104,.035) 1px,transparent 1px),
+    #030608!important;
+  background-size:auto,32px 32px,32px 32px!important;
+}
+.gcs-center-bottom>.card-panel{
+  background:#05080a!important;border-color:#252b30!important;overflow:hidden!important;padding:0!important;
+}
+.gcs-center-bottom>.card-panel .card-panel-header{min-height:34px!important}
+.gcs-center-bottom canvas{opacity:.7!important}
+.gcs-right>.card-panel{
+  background:#05080a!important;border-color:#252b30!important;overflow:hidden!important;
+}
+.gcs-right>.card-panel .card-panel-header{min-height:38px!important}
+.gcs-right>.card-panel:nth-child(1){border-left:2px solid #57ff9a!important}
+.gcs-right>.card-panel:nth-child(2){border-left:1px solid #3b444a!important}
+.gcs-right>.card-panel:nth-child(3){border-left:1px solid #3b444a!important}
+.gcs-right .text-emerald-400{color:#57ff9a!important}
+.gcs-right .text-sky-300{color:#4fe5ff!important}
+.gcs-right .text-red-400{color:#ff3344!important}
+.gcs-right .text-amber-400{color:#f1c400!important}
+.gcs-right .border-l-4{border-left-width:0!important}
+.gcs-right .p-3{padding:12px!important}
+.gcs-right .p-2\.5{padding:10px!important}
+.gcs-right .text-2xl{font-size:19px!important}
+.gcs-right .text-xl{font-size:17px!important}
+.gcs-right .text-sm{font-size:11px!important}
+.gcs-right .text-xs{font-size:9px!important}
+.gcs-right .text-\[10px\]{font-size:8px!important}
+.gcs-right .mono{letter-spacing:.06em}
+body>footer{
+  height:96px!important;min-height:96px!important;
+  padding:7px 12px!important;background:#030507!important;
+  border-top:1px solid #2a3136!important;
+}
+body>footer .btn-fault{
+  border-radius:0!important;background:#06090b!important;border-color:#252c31!important;
+}
+body>footer .btn-fault:hover{background:#0b0f12!important;border-color:#4d5961!important}
+.rounded,.rounded-sm,.rounded-md,.rounded-lg,.rounded-xl,.rounded-2xl{border-radius:0!important}
+</style>
+
+<style id="engine-twin-command-center-final">
+:root{
+ --cc-bg:#030506;--cc-panel:#06090b;--cc-panel2:#080b0d;--cc-line:#252c31;--cc-line2:#151a1e;
+ --cc-text:#b7c0c5;--cc-dim:#5b666d;--cc-white:#e0e5e8;--cc-green:#51ff96;--cc-cyan:#50dfff;
+ --cc-amber:#f0c20a;--cc-red:#ff3e48;
+}
+html,body{background:var(--cc-bg)!important;color:var(--cc-text)!important}
+body{font-family:"JetBrains Mono",monospace!important;letter-spacing:.035em!important}
+body:before{z-index:99999!important;opacity:.09!important;pointer-events:none!important}
+header{margin:6px 10px 0!important;height:62px!important;min-height:62px!important;padding:0 16px!important;background:#030506!important;border:1px solid #242a2e!important}
+header .text-sm{font-size:14px!important;letter-spacing:.12em!important}
+.gcs-routebar{height:32px;min-height:32px;margin:0 10px;border:1px solid #20262a;border-top:0;background:#05080a;display:flex;align-items:center;gap:12px;padding:0 10px;overflow:hidden}
+.gcs-route-brand{font-size:8px;color:#4e5960;letter-spacing:.16em;white-space:nowrap;border-right:1px solid #252c31;padding-right:12px}
+.gcs-route-links{display:flex;align-items:center;gap:2px;min-width:0;overflow-x:auto}
+.gcs-route-btn{height:22px;padding:0 9px;background:#06090b;border:1px solid transparent;color:#68747b;font:600 8px "JetBrains Mono",monospace;letter-spacing:.08em;white-space:nowrap;cursor:pointer}
+.gcs-route-btn:hover{color:#cbd2d6;border-color:#30383d;background:#0a0e10}
+.gcs-route-btn.is-active{color:#e4e9eb;border-color:#536069;background:#0b1013;box-shadow:inset 0 -2px 0 var(--cc-cyan)}
+.gcs-route-readout{margin-left:auto;font-size:8px;color:#455058;white-space:nowrap}.gcs-route-readout span{color:#89959c}
+body>div:nth-of-type(1){margin:0 10px!important;height:30px!important;min-height:30px!important;border-top:0!important}
+main{padding:8px 10px!important;gap:8px!important;grid-template-columns:292px minmax(0,1fr) 292px!important;grid-template-rows:minmax(0,1fr) 174px!important;grid-template-areas:"left center right" "b1 b2 b3"!important}
+.gcs-left,.gcs-center,.gcs-right{min-width:0;min-height:0}
+.gcs-left{display:flex!important;flex-direction:column;gap:6px;overflow-y:auto!important;overflow-x:hidden!important;padding-right:2px}
+.gcs-left .gcs-mini-panel{flex-shrink:0}
+.gcs-left>#subsystem-health-panel{flex-shrink:0;overflow:visible}
+.gcs-mini-panel{background:linear-gradient(180deg,#070a0c,#05080a);border:1px solid #252c31;position:relative;padding:9px 10px}
+.gcs-mini-panel:before,.card-panel:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px);opacity:.7}
+.gcs-mini-title{position:relative;display:flex;justify-content:space-between;align-items:center;color:#7e8b92;font-size:9px;font-weight:700;letter-spacing:.15em;padding-bottom:7px;border-bottom:1px solid #20272c}
+.gcs-mini-title span{font-size:7px;color:#4f5a61}
+.gcs-stage-list{display:grid;gap:4px;padding-top:7px}.gcs-stage-row{height:29px;display:flex;align-items:center;gap:8px;border:1px solid #242b30;background:#06090b;padding:0 8px;color:#aab4b9;font-size:9px;letter-spacing:.08em}.gcs-stage-row:hover{border-color:#465159}.gcs-stage-num{color:#4f5a61}.gcs-stage-mark{width:7px;height:7px;border:1px solid currentColor;display:inline-block}.gcs-stage-mark.cyan{color:var(--cc-cyan)}.gcs-stage-mark.green{color:var(--cc-green)}.gcs-stage-mark.amber{color:var(--cc-amber)}.gcs-stage-mark.red{color:var(--cc-red)}
+.gcs-select-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding-top:7px}.gcs-select-grid div{border-left:1px solid #2a3136;padding-left:7px}.gcs-select-grid span{display:block;color:#4f5a61;font-size:7px;letter-spacing:.12em}.gcs-select-grid b{display:block;color:#c8d0d4;font-size:9px;margin-top:2px}
+.gcs-component-grid{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding-top:7px}.gcs-component-grid button,.gcs-sim-row button,.gcs-view-btn{border:1px solid #273037;background:#070a0c;color:#738087;font:600 7px "JetBrains Mono",monospace;letter-spacing:.06em;padding:5px 4px;cursor:pointer}.gcs-component-grid button:hover,.gcs-component-grid button.is-selected{color:#e4faff;border-color:#39707a;background:#0b1518;box-shadow:inset 2px 0 0 var(--cc-cyan)}
+.gcs-sim-row{display:flex;gap:3px;padding-top:7px}.gcs-sim-row button{flex:1}.gcs-sim-row button:hover,.gcs-sim-row button.is-selected{color:#dfffe9;border-color:#43684f;background:#09130d}.gcs-cycle{display:flex;justify-content:space-between;padding-top:7px;font-size:7px;color:#505b61}.gcs-cycle b{color:#a8b2b7}
+.gcs-feed-row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted #1d2327;padding:5px 0;font-size:8px;color:#556169}.gcs-feed-row span:last-child{color:#a6b0b5;text-align:right}
+.gcs-alert-panel{height:124px}.gcs-alert-ring{height:82px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}.gcs-alert-core{width:58px;height:58px;border:1px dashed #556168;border-radius:50%;position:relative}.gcs-alert-core:before{content:"!";position:absolute;inset:13px;border:1px solid #718087;color:#d7dee2;display:flex;align-items:center;justify-content:center;font-size:18px}.gcs-alert-label{font-size:8px;color:#647077;letter-spacing:.1em}
+.gcs-center{display:flex!important;flex-direction:column;gap:8px;min-width:0}.gcs-center>.card-panel:first-child{min-height:0;flex:1}.gcs-center-bottom{height:174px!important;min-height:174px!important;display:grid!important;grid-template-columns:1fr 1fr 1fr!important;gap:8px!important}.gcs-center-bottom>.card-panel{height:100%!important}.gcs-right{display:flex!important;flex-direction:column;gap:8px;overflow:auto}.gcs-right>.card-panel:first-child{min-height:238px}.gcs-right>.card-panel:nth-child(2){min-height:0;flex:1}.gcs-right>.card-panel:nth-child(3){min-height:126px}
+.card-panel{background:linear-gradient(180deg,#070a0c,#05080a)!important;border:1px solid #252c31!important;border-radius:0!important;box-shadow:none!important}.card-panel-header{background:#05080a!important;border-bottom:1px solid #222a2f!important;color:#aeb8bd!important}.card-panel-header span{letter-spacing:.11em!important}.card-panel-header button{border-radius:0!important}
+#container-3d{background-color:#030608!important;background-image:linear-gradient(rgba(72,112,121,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(72,112,121,.045) 1px,transparent 1px),repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px)!important;background-size:32px 32px,32px 32px,100% 4px!important}
+#container-3d canvas{filter:saturate(.72) contrast(1.04)!important}
+.gcs-view-btn{font-size:7px!important;padding:4px 5px!important}.gcs-view-btn.is-active{color:#e8fdff!important;border-color:#367783!important;background:#09161a!important}
+.gcs-center .card-panel-header+div{min-height:0}
+.gcs-right .border-l-sky-500{border-left-color:#355861!important}
+.gcs-right .text-sky-400,.gcs-right .text-sky-300{color:var(--cc-cyan)!important}.gcs-right .text-emerald-400{color:var(--cc-green)!important}.gcs-right .text-amber-400{color:var(--cc-amber)!important}.gcs-right .text-red-400{color:var(--cc-red)!important}
+body>footer{height:94px!important;min-height:94px!important;padding:7px 10px!important;background:#030506!important;border-top:1px solid #252c31!important}
+body>footer .btn-fault{height:54px!important;background:#06090b!important;border-color:#252c31!important}.gcs-left::-webkit-scrollbar,.gcs-right::-webkit-scrollbar,.gcs-route-links::-webkit-scrollbar{width:3px;height:3px}
+/* Route layouts: UI-only views, no backend changes. */
+body.route-digital-twin main{grid-template-columns:1fr!important;grid-template-areas:"center"!important;grid-template-rows:1fr!important}body.route-digital-twin .gcs-left,body.route-digital-twin .gcs-right,body.route-digital-twin .gcs-center-bottom,body.route-digital-twin footer{display:none!important}body.route-digital-twin .gcs-center{height:100%}
+body.route-telemetry main{grid-template-columns:1fr!important;grid-template-areas:"center"!important;grid-template-rows:1fr!important}body.route-telemetry .gcs-left,body.route-telemetry .gcs-right,body.route-telemetry .gcs-center>.card-panel:first-child,body.route-telemetry footer{display:none!important}body.route-telemetry .gcs-center-bottom{height:100%!important;min-height:0!important;grid-template-columns:1fr 1fr 1fr!important}
+body.route-ai-diagnostics main{grid-template-columns:1fr 1fr!important;grid-template-areas:"center right"!important;grid-template-rows:1fr!important}body.route-ai-diagnostics .gcs-left,body.route-ai-diagnostics .gcs-center-bottom,body.route-ai-diagnostics footer{display:none!important}body.route-ai-diagnostics .gcs-center>.card-panel:first-child{height:100%!important}
+body.route-ai-diagnostics main{display:none!important}
+body.route-predictive-maintenance main{grid-template-columns:1fr 1fr!important;grid-template-areas:"left right"!important;grid-template-rows:1fr!important}body.route-predictive-maintenance .gcs-center,body.route-predictive-maintenance footer{display:none!important}
+body.route-mission-history main{grid-template-columns:1fr 1fr!important;grid-template-areas:"left right"!important;grid-template-rows:1fr!important}body.route-mission-history .gcs-center,body.route-mission-history footer{display:none!important}
+body.route-alerts main{grid-template-columns:1fr!important;grid-template-areas:"right"!important;grid-template-rows:1fr!important}body.route-alerts .gcs-left,body.route-alerts .gcs-center,body.route-alerts footer{display:none!important}
+/* The command center is an overview: keep the twin, status, performance and
+   selected-component context visible, and move deep analysis to its routes. */
+body.route-command-center .gcs-center-bottom,
+body.route-command-center .gcs-right> :nth-child(n+4),
+body.route-command-center .gcs-left>.gcs-mini-panel:first-child,
+body.route-command-center .gcs-left>.gcs-sim-control,
+body.route-command-center>div:nth-of-type(1),
+body.route-command-center>footer{display:none!important}
+body.route-command-center .gcs-left{grid-template-rows:126px 150px minmax(0,1fr)!important}
+body.route-command-center .gcs-center{grid-template-rows:minmax(0,1fr)!important}
+body.route-command-center .gcs-right{grid-template-rows:minmax(0,1fr) minmax(0,1fr)!important}
+body.route-command-center .gcs-right>.gcs-component-detail{min-height:0!important}
+body.route-fault-injection #route-page{display:flex}
+body.route-fault-injection main{display:none!important}
+body.route-fault-injection footer{display:flex!important;height:auto!important;min-height:110px!important}
+body.route-fault-injection .gcs-route-page-grid{grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:8px;height:100%}
+body.route-fault-injection #route-module-main{display:flex;padding:0;overflow:hidden}
+body.route-fault-injection #route-module-main>#panel-3d-twin{width:100%;height:100%;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;flex:1 1 auto}
+body.route-fault-injection #route-module-main>#panel-3d-twin #container-3d{width:100%;height:auto;flex:1 1 auto;min-width:0;min-height:0}
+@media(max-width:1200px){main{grid-template-columns:250px minmax(0,1fr) 250px!important}.gcs-route-readout{display:none}.gcs-route-btn{padding:0 6px;font-size:7px}}
+</style>
+<style id="engine-twin-route-pages">
+.gcs-route-page{display:none;min-height:0;flex:1;padding:8px 10px;background:#030506;overflow:hidden}
+.gcs-route-page-grid{height:100%;display:grid;grid-template-columns:minmax(0,2fr) minmax(300px,1fr);gap:8px}
+.gcs-module-card{position:relative;background:linear-gradient(180deg,#070a0c,#05080a);border:1px solid #252c31;min-height:0;overflow:hidden}
+.gcs-module-card:before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px)}
+.gcs-module-title{height:38px;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid #20272c;color:#7d898f;font:700 9px "JetBrains Mono",monospace;letter-spacing:.15em}.gcs-module-title span{color:#d2d9dc}
+.gcs-module-body{padding:14px;height:calc(100% - 38px);overflow:auto;color:#8c989e;font:9px "JetBrains Mono",monospace;letter-spacing:.04em}
+.gcs-live-metrics{display:grid;grid-template-columns:1fr 1fr;align-content:start;gap:6px}.gcs-live-metrics div{border:1px solid #222a2f;background:#05080a;padding:12px}.gcs-live-metrics span{display:block;color:#536068;font-size:7px;letter-spacing:.13em}.gcs-live-metrics b{display:block;margin-top:7px;color:#d4dcdf;font-size:17px}.gcs-live-metrics div:first-child b{color:var(--cc-green)}
+.gcs-history-row{display:grid;grid-template-columns:90px 70px 1fr 80px;gap:10px;padding:8px 0;border-bottom:1px dotted #1e2529;color:#aab4b9}.gcs-history-row .ok{color:var(--cc-green)}.gcs-history-row .warn{color:var(--cc-amber)}.gcs-history-row .crit{color:var(--cc-red)}
+.gcs-alert-row{display:grid;grid-template-columns:90px 80px 1fr 90px;gap:10px;padding:10px;border-bottom:1px dotted #1e2529}.gcs-alert-row .critical{color:var(--cc-red)}.gcs-alert-row .warning{color:var(--cc-amber)}.gcs-alert-row .nominal{color:var(--cc-green)}
+body.route-predictive-maintenance #route-page,body.route-mission-history #route-page,body.route-alerts #route-page{display:flex}
+body.route-telemetry #route-page{display:none}
+body.route-ai-diagnostics #route-page{display:flex}
+body.route-predictive-maintenance main,body.route-mission-history main,body.route-alerts main{display:none!important}
+body.route-predictive-maintenance footer,body.route-mission-history footer,body.route-alerts footer{display:none!important}
+@media(max-width:900px){.gcs-route-page-grid{grid-template-columns:1fr}.gcs-route-readout{display:none}}
+</style>
+<style id="engine-twin-performance-panels">
+.gcs-performance-panel{flex-shrink:0}.gcs-performance-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding-top:7px}.gcs-performance-grid div{border-left:1px solid #2a3237;padding:5px 7px}.gcs-performance-grid span,.gcs-detail-grid span,.gcs-action-line span{display:block;color:#4e5a61;font-size:7px;letter-spacing:.12em}.gcs-performance-grid b{display:block;color:#d7dfe2;font-size:13px;margin-top:3px}.gcs-performance-grid div:nth-child(1) b,.gcs-performance-grid div:nth-child(8) b{color:var(--cc-cyan)}
+.gcs-component-detail{flex-shrink:0}.gcs-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-top:7px}.gcs-detail-grid div{border-bottom:1px dotted #20272c;padding-bottom:4px}.gcs-detail-grid b{display:block;color:#bfc8cc;font-size:9px;margin-top:3px}.gcs-action-line{margin-top:7px;border:1px solid #20282d;padding:6px;background:#05080a}.gcs-action-line b{display:block;color:#9eabb1;font-size:8px;margin-top:4px;line-height:1.4}
+.gcs-health-trend{display:flex;flex-direction:column;min-height:92px}.gcs-health-line{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px}.gcs-health-line b{color:var(--cc-green);font-size:16px}.gcs-health-spark{height:28px;flex:1;border-bottom:1px solid var(--cc-green);background:linear-gradient(155deg,transparent 0 25%,rgba(67,255,120,.18) 26% 28%,transparent 29% 45%,rgba(67,255,120,.22) 46% 48%,transparent 49% 67%,rgba(67,255,120,.26) 68% 70%,transparent 71%);clip-path:polygon(0 78%,12% 62%,25% 68%,38% 38%,52% 48%,66% 28%,80% 36%,100% 12%,100% 100%,0 100%)}
+</style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden select-none bg-[#050708] text-slate-300">
+<!-- 1. TOP FLIGHT AVIONICS STATUS BAR -->
+<header class="h-13 bg-[#080a0b] border-b border-slate-800 px-4 py-2 flex items-center justify-between flex-shrink-0 z-30">
+<div class="flex items-center space-x-3 flex-nowrap">
+<img src="/static/assets/engine/engine-twin-logo.png"
+     alt="ENGINE-TWIN"
+     class="engine-twin-logo">
+<div class="flex items-center space-x-2 mono whitespace-nowrap">
+    <span class="font-bold text-sm tracking-[0.08em] text-slate-100">VYOM-X</span>
+</div>
+</div>
+<!-- MISSION CONTEXT TELEMETRY TAPE -->
+<div class="flex items-center space-x-6 text-xs mono ml-8">
+<div class="flex flex-col"><span class="text-slate-500 text-[9px] uppercase tracking-wider">MISSION TIME</span><span class="font-bold text-slate-200" id="txt-time">00:00:00</span></div>
+<div class="flex flex-col"><span class="text-slate-500 text-[9px] uppercase tracking-wider">FLIGHT PHASE</span><span class="font-bold text-emerald-400" id="txt-phase">CRUISE / LOITER</span></div>
+<div class="flex flex-col"><span class="text-slate-500 text-[9px] uppercase tracking-wider">ALTITUDE</span><span class="font-bold text-sky-300" id="txt-alt">28,500 FT</span></div>
+<div class="flex flex-col"><span class="text-slate-500 text-[9px] uppercase tracking-wider">AIRSPEED (TAS)</span><span class="font-bold text-slate-200" id="txt-tas">55.0 M/S</span></div>
+<div class="flex flex-col"><span class="text-slate-500 text-[9px] uppercase tracking-wider">OAT (ISA)</span><span class="font-bold text-slate-300" id="txt-oat">-42.5 °C</span></div>
+<div class="flex flex-col"><span class="text-slate-500 text-[9px] uppercase tracking-wider">THROTTLE</span><span class="font-bold text-amber-400" id="txt-throttle">72.0 %</span></div>
+</div>
+<!-- SYSTEM STATUS LEDS -->
+<div class="flex items-center space-x-3 text-[9px] mono text-slate-400 tracking-wider">
+<span class="flex items-center space-x-1"><span class="led-dot bg-emerald-400"></span><span>SYS ONLINE</span></span>
+<span class="flex items-center space-x-1"><span class="led-dot bg-emerald-400"></span><span>AI ACTIVE</span></span>
+<span class="flex items-center space-x-1"><span class="led-dot bg-sky-400"></span><span>SIM RUNNING</span></span>
+</div>
+<!-- CONNECTION & AUDIO CONTROLS -->
+<div class="flex items-center space-x-2">
+<button class="px-2.5 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-none text-slate-400 transition flex items-center space-x-1.5" id="btn-audio" onclick="toggleAudio()" title="Toggle Cockpit Audio Alerts">
+<i class="fa-solid fa-volume-xmark" id="icon-audio"></i>
+<span class="mono text-[10px]" id="lbl-audio">MUTED</span>
+</button>
+<div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-none bg-emerald-950/80 border border-emerald-800 text-emerald-400 text-xs mono" id="badge-connection">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+<span id="lbl-connection">TELEMETRY LIVE (20 Hz)</span>
+</div>
+<button class="px-2.5 py-1 text-xs bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-none text-slate-300 transition flex items-center space-x-1" onclick="resetSimulation()" title="Reset Simulation to Initial State">
+<i class="fa-solid fa-rotate-right text-[10px]"></i>
+<span>Reset</span>
+</button>
+</div>
+</header>
+<!-- AEROSPACE CONSOLE NAVIGATION -->
+<nav class="gcs-routebar" aria-label="ENGINE-TWIN system navigation">
+  <div class="gcs-route-brand">SYSTEM / MODULES</div>
+  <div class="gcs-route-links">
+    <button class="gcs-route-btn is-active" data-route="command-center">COMMAND CENTER</button>
+    <button class="gcs-route-btn" data-route="digital-twin">DIGITAL TWIN</button>
+    <button class="gcs-route-btn" data-route="telemetry">TELEMETRY</button>
+    <button class="gcs-route-btn" data-route="ai-diagnostics">AI DIAGNOSTICS</button>
+    <button class="gcs-route-btn" data-route="predictive-maintenance">PREDICTIVE MAINTENANCE</button>
+    <button class="gcs-route-btn" data-route="mission-history">MISSION HISTORY</button>
+    <button class="gcs-route-btn" data-route="alerts">ALERTS</button>
+    <button class="gcs-route-btn" data-route="fault-injection">FAULT INJECTION</button>
+  </div>
+  <div class="gcs-route-readout">UI ROUTE <span id="ui-route-name">COMMAND-CENTER</span></div>
+</nav>
+<!-- FLIGHT SANDBOX & ENVIRONMENTAL CONTROLS TOOLBAR -->
+<div class="bg-[#080a0b] border-b border-slate-800/80 px-3 py-1 flex items-center justify-between text-xs mono text-slate-300 flex-shrink-0 z-20">
+<div class="flex items-center space-x-4">
+<span class="text-sky-400 font-bold flex items-center space-x-1 text-[11px]">
+<i class="fa-solid fa-plane-up"></i>
+<span>FLIGHT SANDBOX:</span>
+</span>
+<div class="flex items-center space-x-1.5 mr-5">
+<label class="text-[10px] text-slate-400">THROTTLE:</label>
+<input class="w-16 accent-amber-500 cursor-pointer h-1 bg-slate-800 rounded-none" id="slider-throttle" max="100" min="0" oninput="onFlightControlChange()" type="range" value="72"/>
+<span class="text-[10px] text-amber-400 font-bold w-8" id="txt-slider-throttle">72%</span>
+</div>
+<div class="flex items-center space-x-1.5">
+<label class="text-[10px] text-slate-400">ALTITUDE:</label>
+<input class="w-20 accent-sky-500 cursor-pointer h-1 bg-slate-800 rounded-none" id="slider-altitude" max="35000" min="0" oninput="onFlightControlChange()" step="500" type="range" value="28500"/>
+<span class="text-[10px] text-sky-300 font-bold w-12" id="txt-slider-altitude">28.5k FT</span>
+</div>
+<div class="flex items-center space-x-1.5">
+<label class="text-[10px] text-slate-400">OAT:</label>
+<input class="w-16 accent-emerald-500 cursor-pointer h-1 bg-slate-800 rounded-none" id="slider-oat" max="45" min="-50" oninput="onFlightControlChange()" step="1" type="range" value="-20"/>
+<span class="text-[10px] text-emerald-400 font-bold w-10" id="txt-slider-oat">-20°C</span>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<button class="px-2 py-0.5 rounded-none text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" id="btn-sandbox-toggle" onclick="toggleManualSandbox()">
+        [Mode: AUTO MISSION]
+      </button>
+</div>
+</div>
+<!-- 2. MAIN OPERATOR WORKSPACE (3-COLUMN LAYOUT) -->
+<main class="flex-1 min-h-0 grid grid-cols-12 gap-2.5 p-2.5 overflow-hidden"><div class="gcs-left"><div class="gcs-mini-panel"><div class="gcs-mini-title">STAGE SELECT</div><div class="gcs-stage-list"><div class="gcs-stage-row"><span class="gcs-stage-mark cyan"></span><span class="gcs-stage-num">01</span><span>ENGINE CORE</span></div><div class="gcs-stage-row"><span class="gcs-stage-mark green"></span><span class="gcs-stage-num">02</span><span>OIL / LUBE</span></div><div class="gcs-stage-row"><span class="gcs-stage-mark amber"></span><span class="gcs-stage-num">03</span><span>TURBO / BOOST</span></div><div class="gcs-stage-row"><span class="gcs-stage-mark red"></span><span class="gcs-stage-num">04</span><span>VIBRATION</span></div></div></div>
+<div class="gcs-mini-panel gcs-engine-select">
+  <div class="gcs-mini-title">ENGINE SELECT</div>
+  <div class="gcs-select-grid">
+    <div><span>ENGINE ID</span><b>ENG-01</b></div>
+    <div><span>UAV ID</span><b>UAV-MALE-01</b></div>
+    <div><span>MODEL</span><b>VRDE 2.2L</b></div>
+    <div><span>MODE</span><b id="ui-operating-mode">LIVE</b></div>
+  </div>
+</div>
+<div class="gcs-mini-panel gcs-component-select">
+  <div class="gcs-mini-title">COMPONENT SELECT <span id="ui-selected-component">NONE</span></div>
+  <div class="gcs-component-grid">
+    <button data-component="cylinder1">CYLINDER 01</button><button data-component="cylinder2">CYLINDER 02</button>
+    <button data-component="cylinder3">CYLINDER 03</button><button data-component="cylinder4">CYLINDER 04</button>
+    <button data-component="piston">PISTON</button><button data-component="crankshaft">CRANKSHAFT</button>
+    <button data-component="valvetrain">VALVE TRAIN</button><button data-component="intake">INTAKE</button>
+    <button data-component="exhaust">EXHAUST</button>
+  </div>
+</div>
+<div class="gcs-mini-panel gcs-sim-control">
+  <div class="gcs-mini-title">SIMULATION CONTROL</div>
+  <div class="gcs-sim-row"><button data-sim-action="live" class="is-selected">LIVE</button><button data-sim-action="simulation">SIMULATION</button></div>
+  <div class="gcs-sim-row"><button data-sim-action="prev">◀ PREV</button><button data-sim-action="play">▶ PLAY</button><button data-sim-action="pause">Ⅱ PAUSE</button><button data-sim-action="next">NEXT ▶</button></div>
+  <div class="gcs-cycle"><span>CYCLE</span><b id="ui-sim-cycle">LIVE / 20 HZ</b></div>
+</div>
+<div class="gcs-mini-panel"><div class="gcs-mini-title">TELEMETRY FEED</div><div class="gcs-feed-row"><span>ENGINE</span><span>VRDE 2.2L / 4-CYL</span></div><div class="gcs-feed-row"><span>STREAM</span><span>20 HZ REAL-TIME</span></div><div class="gcs-feed-row"><span>PHASE</span><span>CRUISE / LOITER</span></div><div class="gcs-feed-row"><span>LINK</span><span>GCS LOCAL</span></div></div><div class="gcs-mini-panel gcs-alert-panel"><div class="gcs-mini-title">ALERT RING</div><div class="gcs-alert-ring"><div class="gcs-alert-core" id="alert-ring-core"></div><div class="gcs-alert-label" id="alert-ring-label">SYSTEM NOMINAL</div></div></div><div class="card-panel rounded-none min-h-0 p-2.5 flex flex-col space-y-1.5" id="subsystem-health-panel">
+<div class="flex items-center justify-between pb-1 border-b border-slate-800">
+<span class="text-xs font-bold text-slate-300 tracking-wider flex items-center space-x-1.5">
+<i class="fa-solid fa-gauge-high text-sky-400 text-xs"></i>
+<span>SUBSYSTEM HEALTH STATUS</span>
+</span>
+<span class="text-[10px] px-2 py-0.5 rounded-none bg-emerald-950 border border-emerald-700 text-emerald-400 font-bold mono" id="badge-status-level">NOMINAL</span>
+</div>
+<div class="grid grid-cols-3 gap-1.5 text-xs mono pt-0.5">
+<div class="bg-slate-900/90 p-1.5 rounded-none border border-slate-800 flex flex-col">
+<span class="text-slate-400 text-[9px]">OVERALL HEALTH</span>
+<span class="text-base font-bold text-emerald-400 mt-0.5" id="val-health-overall">100.0 %</span>
+</div>
+<div class="bg-slate-900/90 p-1.5 rounded-none border border-slate-800 flex flex-col">
+<span class="text-slate-400 text-[9px]">OIL SYSTEM</span>
+<span class="text-base font-bold text-emerald-400 mt-0.5" id="val-health-oil">100.0 %</span>
+</div>
+<div class="bg-slate-900/90 p-1.5 rounded-none border border-slate-800 flex flex-col">
+<span class="text-slate-400 text-[9px]">TURBO / BOOST</span>
+<span class="text-base font-bold text-emerald-400 mt-0.5" id="val-health-turbo">100.0 %</span>
+</div>
+<div class="bg-slate-900/90 p-1.5 rounded-none border border-slate-800 flex flex-col">
+<span class="text-slate-400 text-[9px]">COMBUSTION</span>
+<span class="text-base font-bold text-emerald-400 mt-0.5" id="val-health-cyls">100.0 %</span>
+</div>
+<div class="bg-slate-900/90 p-1.5 rounded-none border border-slate-800 flex flex-col">
+<span class="text-slate-400 text-[9px]">VIBRATION (2X)</span>
+<span class="text-base font-bold text-emerald-400 mt-0.5" id="val-health-vib">100.0 %</span>
+</div>
+<div class="bg-slate-900/90 p-1.5 rounded-none border border-slate-800 flex flex-col">
+<span class="text-slate-400 text-[9px]">AVIONICS BUS</span>
+<span class="text-base font-bold text-emerald-400 mt-0.5" id="val-health-elec">100.0 %</span>
+</div>
+</div>
+</div></div><div class="gcs-center"><div class="card-panel rounded-none min-h-0 flex-1 relative flex flex-col overflow-hidden" id="panel-3d-twin">
+<div class="card-panel-header px-3 py-1.5 flex items-center justify-between z-10">
+<div class="flex items-center space-x-2 text-xs font-semibold text-slate-300">
+<i class="fa-solid fa-cube text-sky-400 text-[11px]"></i>
+<span>3D DIGITAL TWIN ENGINE MODEL</span>
+</div>
+<!-- Camera Presets -->
+<div class="flex items-center space-x-1 text-[10px] mono">
+<button class="px-1.5 py-0.5 rounded-none bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" onclick="setCameraPreset('orbit')">Orbit</button>
+<button class="px-1.5 py-0.5 rounded-none bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" onclick="setCameraPreset('cylinders')">Cyls</button>
+<button class="px-1.5 py-0.5 rounded-none bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" onclick="setCameraPreset('turbo')">Turbo</button>
+<button class="px-1.5 py-0.5 rounded-none bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" onclick="setCameraPreset('sump')">Sump</button>
+<button class="gcs-view-btn" data-viewmode="exploded">EXPLODE</button>
+<button class="gcs-view-btn" data-viewmode="cutaway">CUTAWAY</button>
+<button class="gcs-view-btn" data-viewmode="thermal">THERMAL</button>
+<button class="gcs-view-btn" data-viewmode="airflow">AIRFLOW</button>
+<button class="gcs-view-btn" data-viewmode="structural">STRUCT</button>
+</div>
+</div>
+<!-- 3D WebGL Canvas Container -->
+<div class="w-full h-full flex-1 cursor-grab active:cursor-grabbing bg-[#050708] relative" id="container-3d">
+<div class="absolute top-2 left-2 text-[9px] mono text-slate-500 tracking-wider leading-tight pointer-events-none z-10">
+            SYS ID: SIH26054<br/>MODEL: VRDE 2.2L AERO-DIESEL<br/>VIEW: 3D DIGITAL TWIN
+          </div>
+<div class="absolute bottom-2 left-2 text-[9px] mono text-slate-600 tracking-wider pointer-events-none z-10">DRAG TO ORBIT · SCROLL TO ZOOM</div>
+<div class="absolute bottom-2 right-2 text-[9px] mono text-slate-600 tracking-wider pointer-events-none z-10">ORBIT VIEWPORT</div>
+</div>
+<!-- Cylinder Thermal Readout Bar -->
+<div class="card-panel-header px-3 py-1.5 flex justify-between text-[11px] mono border-t border-slate-800">
+<span class="cursor-pointer hover:text-sky-300" onclick="focusCylinder(0)">CYL 1: <b class="text-emerald-400" id="txt-cyl1-stat">100%</b> (<span class="text-slate-400" id="txt-cyl1-temp">810°C</span>)</span>
+<span class="cursor-pointer hover:text-sky-300" onclick="focusCylinder(1)">CYL 2: <b class="text-emerald-400" id="txt-cyl2-stat">100%</b> (<span class="text-slate-400" id="txt-cyl2-temp">810°C</span>)</span>
+<span class="cursor-pointer hover:text-sky-300" onclick="focusCylinder(2)">CYL 3: <b class="text-emerald-400" id="txt-cyl3-stat">100%</b> (<span class="text-slate-400" id="txt-cyl3-temp">810°C</span>)</span>
+<span class="cursor-pointer hover:text-sky-300" onclick="focusCylinder(3)">CYL 4: <b class="text-emerald-400" id="txt-cyl4-stat">100%</b> (<span class="text-slate-400" id="txt-cyl4-temp">810°C</span>)</span>
+</div>
+</div><div class="gcs-center-bottom"><div class="card-panel rounded-none min-h-0 p-2.5 flex-1 flex flex-col overflow-hidden">
+<div class="flex items-center justify-between mb-1 pb-1 border-b border-slate-800/80">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-orange-400"></span>
+<span class="text-xs font-bold text-slate-200">EXHAUST &amp; HEAD TEMPERATURES (EGT 1–4 &amp; CHT)</span>
+</div>
+<div class="text-[10px] mono text-slate-400" id="badge-chart1-alert">Solid = Sensor | Dashed = MVEM Expected</div>
+</div>
+<div class="flex-1 relative min-h-[110px]">
+<canvas id="chart-temp"></canvas>
+</div>
+</div><div class="card-panel rounded-none min-h-0 p-2.5 flex-1 flex flex-col overflow-hidden">
+<div class="flex items-center justify-between mb-1 pb-1 border-b border-slate-800/80">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+<span class="text-xs font-bold text-slate-200">OIL PRESSURE (bar) &amp; MANIFOLD BOOST MAP (bar)</span>
+</div>
+<div class="text-[10px] mono text-slate-400">Residual Normalization: ±3σ Bounds</div>
+</div>
+<div class="flex-1 relative min-h-[110px]">
+<canvas id="chart-pressures"></canvas>
+</div>
+</div><div class="card-panel rounded-none p-2.5 h-40 flex flex-col">
+<div class="flex items-center justify-between mb-1 pb-1 border-b border-slate-800/80">
+<div class="flex items-center space-x-2">
+<span class="w-2 h-2 rounded-full bg-purple-400"></span>
+<span class="text-xs font-bold text-slate-200">ORDER-TRACKED VIBRATION (RMS g) &amp; POWER (HP)</span>
+</div>
+<span class="text-[11px] mono text-purple-300 font-bold" id="txt-power-hp">POWER: 150.0 HP</span>
+</div>
+<div class="flex-1 relative min-h-[90px]">
+<canvas id="chart-vibration"></canvas>
+</div>
+</div></div></div><div class="gcs-right">
+<div class="gcs-mini-panel gcs-performance-panel">
+  <div class="gcs-mini-title">PERFORMANCE <span>LIVE</span></div>
+  <div class="gcs-performance-grid">
+    <div><span>RPM</span><b id="txt-rpm">----</b></div><div><span>CHT</span><b id="txt-cht">---- °C</b></div>
+    <div><span>EGT</span><b id="txt-egt">---- °C</b></div><div><span>FUEL FLOW</span><b id="txt-fuel">---- L/H</b></div>
+    <div><span>OIL PRESS</span><b id="txt-oil-pressure">---- BAR</b></div><div><span>VIBRATION</span><b id="txt-vibration">---- G</b></div>
+    <div><span>ENGINE LOAD</span><b id="txt-load">---- HP</b></div><div><span>TWIN SYNC</span><b id="txt-twin-sync">100 %</b></div>
+  </div>
+</div>
+<div class="gcs-mini-panel gcs-component-detail">
+  <div class="gcs-mini-title">COMPONENT DETAIL <span id="ui-detail-status">NOMINAL</span></div>
+  <div class="gcs-detail-grid">
+    <div><span>SELECTED</span><b id="detail-component">NONE</b></div>
+    <div><span>HEALTH</span><b id="detail-health">-- %</b></div>
+    <div><span>AI CONFIDENCE</span><b id="detail-confidence">-- %</b></div>
+    <div><span>TEMPERATURE</span><b id="detail-temp">-- °C</b></div>
+    <div><span>VIBRATION</span><b id="detail-vibration">-- G</b></div>
+    <div><span>RUL</span><b id="detail-rul">-- HRS</b></div>
+  </div>
+  <div class="gcs-action-line"><span>RECOMMENDED ACTION</span><b id="detail-action">CONTINUE NOMINAL MISSION PROFILE</b></div>
+</div>
+<div class="gcs-mini-panel gcs-health-trend">
+  <div class="gcs-mini-title">HEALTH TREND <span>30D</span></div>
+  <div class="gcs-health-line"><span class="gcs-health-spark"></span><b id="route-health-trend">100.0%</b></div>
+</div>
+
+<div class="flex items-center justify-between pb-1 border-b border-slate-800">
+<span class="text-xs font-bold text-slate-300 tracking-wider flex items-center space-x-1.5">
+<i class="fa-solid fa-brain text-sky-400 text-xs"></i>
+<span>AI DIAGNOSTIC INFERENCE</span>
+</span>
+<span class="text-[9px] px-1.5 py-0.5 rounded-none bg-slate-800 text-slate-400 mono font-bold" id="badge-anomaly">NOMINAL</span>
+</div>
+<div class="space-y-1">
+<div class="text-[10px] text-slate-400 uppercase tracking-wider">DIAGNOSED CONDITION:</div>
+<div class="text-xs font-bold text-slate-100 mono bg-slate-900/90 px-2.5 py-1.5 rounded-none border border-slate-800" id="lbl-fault-class">
+            HEALTHY (NOMINAL)
+          </div>
+<div class="flex justify-between text-xs mono text-slate-400 pt-0.5">
+<span>Confidence: <b class="text-emerald-400" id="val-conf">99.8%</b></span>
+<span>Severity: <b class="text-slate-300" id="val-sev">0.00</b></span>
+</div>
+<div class="bg-slate-900/90 p-2 rounded-none border border-slate-800 space-y-1 text-xs mono">
+<div class="flex justify-between items-center">
+<span class="text-slate-400 text-[11px]">Anomaly Index:</span>
+<span class="font-bold text-sky-400" id="val-anom-idx">0.04 / 1.00</span>
+</div>
+<div class="flex justify-between items-center text-[10px] text-slate-500">
+<span>Reconstruction Error:</span>
+<span id="val-raw-mse">MSE: 2.1 (Thresh: 26.6)</span>
+</div>
+</div>
+</div>
+<!-- Bounded RUL Forecast Window -->
+<div class="bg-slate-900/90 p-2 rounded-none border border-slate-800 space-y-0.5">
+<div class="flex justify-between items-center text-[10px]">
+<span class="text-slate-400 font-medium">RUL FORECAST (95% CI)</span>
+<span class="text-[9px] text-sky-400 mono bg-sky-950 px-1 py-0.5 rounded-none border border-sky-800" id="badge-rul-unc">UNCERTAINTY: LOW</span>
+</div>
+<div class="text-sm font-bold text-sky-300 mono" id="txt-rul-interval">
+            450.0 – 550.0 Flight Hrs
+          </div>
+</div>
+</div><div class="card-panel rounded-none min-h-0 p-2.5 flex-1 flex flex-col space-y-1.5 overflow-hidden">
+<div class="flex items-center justify-between pb-1 border-b border-slate-800">
+<span class="text-xs font-bold text-slate-300 tracking-wider flex items-center space-x-1.5">
+<i class="fa-solid fa-chart-column text-purple-400 text-xs"></i>
+<span>ROOT-CAUSE FEATURE ATTRIBUTION</span>
+</span>
+<span class="text-[9px] text-slate-400 mono">Feature Attribution</span>
+</div>
+<div class="flex-1 space-y-1.5 overflow-y-auto pr-1 text-xs mono" id="container-shap">
+<div class="text-slate-500 text-center py-4 text-xs">All channels within normal physical bounds.</div>
+</div>
+</div><div class="card-panel rounded-none p-2 h-32 flex flex-col space-y-1 overflow-hidden border-t-2 border-t-slate-700">
+<div class="flex items-center justify-between text-[10px] text-slate-400 mono pb-0.5 border-b border-slate-800">
+<span>EVENT TIMELINE LOG</span>
+<span id="txt-log-count">0 events</span>
+</div>
+<div class="flex-1 overflow-y-auto text-[10px] mono space-y-1 text-slate-400 pr-1" id="container-logs">
+<div><span class="text-slate-500">[00:00:01]</span> <span class="text-emerald-400">[SYS]</span> Telemetry synchronized at 20 Hz.</div>
+</div>
+</div></div></main>
+<!-- UI-ONLY MODULE ROUTE PAGES -->
+<section id="route-page" class="gcs-route-page" aria-live="polite">
+  <div class="gcs-route-page-grid">
+    <div class="gcs-module-card">
+      <div class="gcs-module-title">MODULE / <span id="route-page-title">PREDICTIVE MAINTENANCE</span></div>
+      <div class="gcs-module-body" id="route-module-main"></div>
+    </div>
+    <div class="gcs-module-card">
+      <div class="gcs-module-title">ENGINE HEALTH / LIVE MIRROR</div>
+      <div class="gcs-module-body gcs-live-metrics">
+        <div><span>OVERALL HEALTH</span><b id="route-health">100.0 %</b></div>
+        <div><span>RUL</span><b id="route-rul">450–550 HRS</b></div>
+        <div><span>ANOMALY</span><b id="route-anomaly">0.03</b></div>
+        <div><span>CONFIDENCE</span><b id="route-confidence">99.8 %</b></div>
+        <div><span>RPM</span><b id="route-rpm">----</b></div>
+        <div><span>OIL PRESS</span><b id="route-oil">----</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- 3. BOTTOM ENGINEERING FAULT INJECTOR & STAGE DEMO PANEL -->
+<footer class="bg-[#050708] border-t border-slate-800 px-3 py-1.5 flex flex-col space-y-1 flex-shrink-0 z-30">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center space-x-1">
+<i class="fa-solid fa-sliders text-sky-400"></i>
+<span>FAULT INJECTION CONTROL PANEL</span>
+</span>
+<span class="text-[10px] mono text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-none border border-emerald-800" id="txt-active-status">STATUS: HEALTHY BASELINE</span>
+</div>
+<!-- Auto Stage Demo Status Bar -->
+<div class="hidden items-center space-x-2 text-xs mono bg-slate-900 px-2.5 py-0.5 rounded-none border border-sky-800" id="box-autodemo-status">
+<span class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+<span class="text-sky-300 text-[11px]" id="txt-autodemo-phase">Auto Demo: Phase 1/4 (08s)</span>
+<button class="text-red-400 hover:text-red-300 text-[10px] ml-2 font-bold" onclick="stopAutoDemo()">[STOP]</button>
+</div>
+<!-- Sim Speed Controls -->
+<div class="flex items-center space-x-1 text-[11px] mono text-slate-400">
+<span>RATE:</span>
+<button class="px-2 py-0.5 bg-sky-950 border border-sky-700 text-sky-300 rounded-none font-bold" id="btn-spd-1" onclick="setSimSpeed(1.0)">1x</button>
+<button class="px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-none" id="btn-spd-2" onclick="setSimSpeed(2.0)">2x</button>
+<button class="px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-none" id="btn-spd-5" onclick="setSimSpeed(5.0)">5x</button>
+</div>
+</div>
+<!-- Fault Trigger Cards Grid -->
+<div class="grid grid-cols-9 gap-1.5 min-h-0">
+<!-- 0. Healthy Reset -->
+<button class="btn-fault rounded-none p-1 flex flex-col justify-between text-left h-12 bg-emerald-950 border-emerald-700 text-emerald-300" id="btn-flt-HEALTHY" onclick="injectFault('HEALTHY')">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold">HEALTHY</span>
+<i class="fa-solid fa-check text-[10px]"></i>
+</div>
+<span class="text-[9px] text-emerald-400 mono">[ RESET ALL ]</span>
+</button>
+<!-- 1. Oil Pressure Loss -->
+<button class="btn-fault rounded-none p-1 flex flex-col justify-between text-left h-12" id="btn-flt-OIL_PRESSURE_LOSS" onclick="injectFault('OIL_PRESSURE_LOSS')">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold text-slate-200">OIL LOSS</span>
+<span class="text-[8px] px-1 bg-red-950 text-red-400 rounded-none border border-red-900">CRIT</span>
+</div>
+<span class="text-[8px] text-slate-400 mono">P_oil ↓ 1.1 bar</span>
+</button>
+<!-- 2. Sensor Probe Defect (EGT3) -->
+<button class="btn-fault rounded-none p-1 flex flex-col justify-between text-left h-12" id="btn-flt-SENSOR_FAULT_EGT3" onclick="injectFault('SENSOR_FAULT_EGT3')">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold text-slate-200">PROBE EGT3</span>
+<span class="text-[8px] px-1 bg-sky-950 text-sky-400 rounded-none border border-sky-900">PROBE</span>
+</div>
+<span class="text-[8px] text-slate-400 mono">Sensor ≠ Engine</span>
+</button>
+<!-- 3. Bearing 2X Vib -->
+<button class="btn-fault rounded-none p-1 flex flex-col justify-between text-left h-12" id="btn-flt-BEARING_WEAR_VIBRATION" onclick="injectFault('BEARING_WEAR_VIBRATION')">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold text-slate-200">BEARING 2X</span>
+<span class="text-[8px] px-1 bg-purple-950 text-purple-400 rounded-none border border-purple-900">MECH</span>
+</div>
+<span class="text-[8px] text-slate-400 mono">Vib ↑ 3.8g (2X)</span>
+</button>
+<!-- 4. Turbo Boost Loss -->
+<button class="btn-fault rounded-none p-1 flex flex-col justify-between text-left h-12" id="btn-flt-TURBO_BOOST_DEFICIENCY" onclick="injectFault('TURBO_BOOST_DEFICIENCY')">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold text-slate-200">TURBO BOOST</span>
+<span class="text-[8px] px-1 bg-amber-950 text-amber-400 rounded-none border border-amber-900">BOOST</span>
+</div>
+<span class="text-[8px] text-slate-400 mono">MAP ↓ 1.45 bar</span>
+</button>
+<!-- 5. Lean Mixture Cyl 3 -->
+<button class="btn-fault rounded-none p-1 flex flex-col justify-between text-left h-12" id="btn-flt-LEAN_MIXTURE_CYL3" onclick="injectFault('LEAN_MIXTURE_CYL3')">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold text-slate-200">LEAN MIX C3</span>
+<span class="text-[8px] px-1 bg-orange-950 text-orange-400 rounded-none border border-orange-900">AFR</span>
+</div>
+<span class="text-[8px] text-slate-400 mono">EGT3 ↑ 940°C</span>
+</button>
+<!-- 6. Cooling Loss Cyl 2 -->
+<button class="btn-fault rounded-none p-1 flex flex-col justify-between text-left h-12" id="btn-flt-COOLING_DEGRADATION_CYL2" onclick="injectFault('COOLING_DEGRADATION_CYL2')">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold text-slate-200">COOLING C2</span>
+<span class="text-[8px] px-1 bg-rose-950 text-rose-400 rounded-none border border-rose-900">THERM</span>
+</div>
+<span class="text-[8px] text-slate-400 mono">CHT2 ↑ 245°C</span>
+</button>
+<!-- 7. Cylinder Misfire -->
+<button class="btn-fault rounded-none p-1 flex flex-col justify-between text-left h-12" id="btn-flt-CYLINDER_MISFIRE_TIMING" onclick="injectFault('CYLINDER_MISFIRE_TIMING')">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold text-slate-200">MISFIRE</span>
+<span class="text-[8px] px-1 bg-yellow-950 text-yellow-400 rounded-none border border-yellow-900">IGN</span>
+</div>
+<span class="text-[8px] text-slate-400 mono">Timing Jitter</span>
+</button>
+<!-- 8. Auto Stage Demo Runner -->
+<button class="rounded-none p-1 flex flex-col justify-between text-left h-12 bg-sky-950 hover:bg-sky-900 border border-sky-700 text-sky-300 transition" id="btn-autodemo" onclick="toggleAutoDemo()">
+<div class="flex justify-between items-center w-full">
+<span class="text-[10px] font-bold">AUTO STAGE</span>
+<i class="fa-solid fa-play text-[10px]"></i>
+</div>
+<span class="text-[8px] text-sky-400 mono">4-Phase Script</span>
+</button>
+</div>
+</footer>
+<!-- Load Scripts -->
+<script src="/static/engine_view3d.js"></script>
+<script src="/static/app.js"></script>
+<script>
+(function(){
+  const routes=['command-center','digital-twin','telemetry','ai-diagnostics','predictive-maintenance','mission-history','alerts','fault-injection'];
+  const routeLabels={
+    'command-center':'COMMAND-CENTER','digital-twin':'DIGITAL-TWIN','telemetry':'TELEMETRY','ai-diagnostics':'AI-DIAGNOSTICS',
+    'predictive-maintenance':'PREDICTIVE-MAINTENANCE','mission-history':'MISSION-HISTORY','alerts':'ALERTS','fault-injection':'FAULT-INJECTION'
+  };
+  const routeTitles={
+    'predictive-maintenance':'PREDICTIVE MAINTENANCE','mission-history':'MISSION HISTORY','alerts':'ALERT ARCHIVE','fault-injection':'FAULT INJECTION'
+  };
+  let currentRoute='command-center';
+  let selectedComponentKey='';
+
+  function setRoute(route, push=true){
+    if(!routes.includes(route)) route='command-center';
+    currentRoute=route;
+    document.body.className=document.body.className.replace(/\broute-[^\s]+/g,'').trim();
+    document.body.classList.add('route-'+route);
+    document.querySelectorAll('.gcs-route-btn').forEach(b=>b.classList.toggle('is-active',b.dataset.route===route));
+    const readout=document.getElementById('ui-route-name'); if(readout) readout.textContent=routeLabels[route];
+    const title=document.getElementById('route-page-title'); if(title) title.textContent=routeTitles[route]||routeLabels[route];
+    if(push && location.hash!=='#/'+route) history.pushState({route},'', '#/'+route);
+    renderRoutePage(route);
+    if(window.engine3D && engine3D.onWindowResize) setTimeout(()=>engine3D.onWindowResize(),60);
+  }
+  function renderRoutePage(route){
+    const box=document.getElementById('route-module-main'); if(!box) return;
+    const panel=document.getElementById('panel-3d-twin');
+    const center=document.querySelector('.gcs-center');
+    if(route!=='fault-injection' && panel && center && panel.parentElement!==center){
+      center.insertBefore(panel,center.firstElementChild);
+    }
+    if(route==='telemetry'){
+      box.innerHTML='';
+    }else if(route==='ai-diagnostics'){
+      box.innerHTML=`<div class="gcs-history-row"><b>AI STATUS</b><span class="ok">ACTIVE</span><span>ANOMALY SCORE / FAULT PROBABILITY / CONFIDENCE</span><b id="route-ai-status">NOMINAL</b></div>
+      <div class="gcs-history-row"><b>ROOT CAUSE</b><span class="warn">LIVE</span><span>Feature attribution and recommended action are synchronized from the twin.</span><b id="route-ai-fault">HEALTHY</b></div>
+      <div id="route-ai-attribution"></div>`;
+    }else if(route==='fault-injection'){
+      box.innerHTML='';
+      if(panel) box.appendChild(panel);
+    }else if(route==='predictive-maintenance'){
+      box.innerHTML=`<div class="gcs-history-row"><b>RUL FORECAST</b><span class="ok">LOW UNC.</span><span>Remaining useful life interval derived from current twin state.</span><b id="route-rul-main">450–550 HRS</b></div>
+      <div class="gcs-history-row"><b>HEALTH TREND</b><span class="ok">TRACKING</span><span>Overall engine health and subsystem degradation trajectory.</span><b id="route-health-main">100.0%</b></div>
+      <div class="gcs-history-row"><b>MAINTENANCE</b><span class="ok">ADVISORY</span><span id="route-action-main">Continue nominal mission profile.</span><b>NEXT CYCLE</b></div>`;
+    }else if(route==='mission-history'){
+      box.innerHTML=`<div class="gcs-history-row"><b>TIME</b><b>EVENT</b><span>MISSION / DIGITAL-TWIN EVENT</span><b>STATUS</b></div><div id="route-history-list"></div>`;
+      renderHistory();
+    }else if(route==='alerts'){
+      box.innerHTML=`<div class="gcs-alert-row"><b>TIME</b><b>LEVEL</b><span>EVENT / DIAGNOSTIC CONDITION</span><b>STATE</b></div><div id="route-alert-list"></div>`;
+      renderAlerts();
+    }else box.innerHTML='';
+  }
+  function renderHistory(){
+    const el=document.getElementById('route-history-list'); if(!el) return;
+    const logs=window.eventLogs||[];
+    el.innerHTML=(logs.length?logs:[{timestamp:'--:--:--',tag:'SYS',message:'Waiting for telemetry events.'}]).map(x=>`<div class="gcs-history-row"><span>${x.timestamp}</span><span>${x.tag}</span><span>${x.message}</span><b class="ok">RECORDED</b></div>`).join('');
+  }
+  function renderAlerts(){
+    const el=document.getElementById('route-alert-list'); if(!el) return;
+    const logs=(window.eventLogs||[]).filter(x=>x.tag==='FLT'||x.tag==='ERR'||x.tag==='AI');
+    el.innerHTML=(logs.length?logs:[{timestamp:'--:--:--',tag:'SYS',message:'No active alerts. System monitoring nominal.'}]).map(x=>{
+      const level=x.tag==='ERR'?'CRITICAL':x.tag==='FLT'?'WARNING':'ADVISORY';
+      const cls=x.tag==='ERR'?'critical':x.tag==='FLT'?'warning':'nominal';
+      return `<div class="gcs-alert-row"><span>${x.timestamp}</span><b class="${cls}">${level}</b><span>${x.message}</span><b class="${cls}">${x.tag}</b></div>`;
+    }).join('');
+  }
+  function updateRouteMetrics(){
+    const map={
+      health:document.getElementById('val-health-overall')?.textContent||'100.0 %',
+      rul:document.getElementById('txt-rul-interval')?.textContent?.trim()||'450–550 HRS',
+      anomaly:document.getElementById('val-anom-idx')?.textContent||'0.03',
+      confidence:document.getElementById('val-conf')?.textContent||'99.8 %',
+      rpm:document.getElementById('txt-rpm')?.textContent||'----',
+      oil:document.getElementById('txt-oil-pressure')?.textContent||'----'
+    };
+    Object.entries(map).forEach(([k,v])=>{const el=document.getElementById('route-'+k);if(el)el.textContent=v});
+    const detail=document.getElementById('detail-component');
+    if(detail) detail.textContent=selectedComponentKey ? selectedComponentKey.toUpperCase().replace('VALVETRAIN','VALVE TRAIN') : 'NONE';
+    const trend=document.getElementById('route-health-trend'); if(trend) trend.textContent=map.health;
+    const aiStatus=document.getElementById('route-ai-status'); if(aiStatus) aiStatus.textContent=map.anomaly;
+    const aiFault=document.getElementById('route-ai-fault'); if(aiFault) aiFault.textContent=document.getElementById('lbl-fault-class')?.textContent||'HEALTHY';
+    const attribution=document.getElementById('route-ai-attribution');
+    const source=document.getElementById('container-shap');
+    if(attribution && source) attribution.innerHTML=source.innerHTML;
+    const dhealth=document.getElementById('detail-health');
+    const cylMatch=(selectedComponentKey||'').match(/^cylinder([1-4])$/);
+    if(dhealth){
+      const source=cylMatch?document.getElementById('val-health-cyls')?.textContent:(selectedComponentKey==='piston'||selectedComponentKey==='valvetrain'?document.getElementById('val-health-cyls')?.textContent:selectedComponentKey==='turbo'?document.getElementById('val-health-turbo')?.textContent:selectedComponentKey==='crankshaft'?document.getElementById('val-health-vib')?.textContent:document.getElementById('val-health-overall')?.textContent);
+      dhealth.textContent=source||'-- %';
+    }
+    if(currentRoute==='mission-history') renderHistory();
+    if(currentRoute==='alerts') renderAlerts();
+  }
+  window.handle3DComponentSelection=function(key){
+    const ok=window.engine3D&&engine3D.selectComponent?engine3D.selectComponent(key):false;
+    selectedComponentKey=key||'';
+    window.selectedComponentKey=selectedComponentKey;
+    const label=(key||'').toUpperCase().replace('VALVETRAIN','VALVE TRAIN');
+    document.querySelectorAll('.gcs-component-grid button').forEach(b=>b.classList.toggle('is-selected',b.dataset.component===key));
+    const selected=document.getElementById('ui-selected-component'); if(selected) selected.textContent=ok?label:'NONE';
+  };
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('.gcs-route-btn').forEach(b=>b.addEventListener('click',()=>setRoute(b.dataset.route)));
+    window.addEventListener('popstate',()=>setRoute((location.hash||'#/command-center').slice(2),false));
+    window.addEventListener('hashchange',()=>setRoute((location.hash||'#/command-center').slice(2),false));
+    document.querySelectorAll('.gcs-component-grid button').forEach(b=>b.addEventListener('click',()=>window.handle3DComponentSelection(b.dataset.component)));
+    document.querySelectorAll('.gcs-view-btn').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('.gcs-view-btn').forEach(x=>x.classList.remove('is-active')); b.classList.add('is-active');
+      if(window.engine3D&&engine3D.setViewMode) engine3D.setViewMode(b.dataset.viewmode);
+    }));
+    document.querySelectorAll('[data-sim-action]').forEach(b=>b.addEventListener('click',()=>{
+      document.querySelectorAll('[data-sim-action]').forEach(x=>x.classList.remove('is-selected')); b.classList.add('is-selected');
+      const action=b.dataset.simAction;
+      const mode=document.getElementById('ui-operating-mode'); const cycle=document.getElementById('ui-sim-cycle');
+      if(action==='simulation'){ const sb=document.getElementById('btn-sandbox-toggle'); if(typeof toggleManualSandbox==='function' && sb && sb.textContent.includes('AUTO')) toggleManualSandbox(); if(mode)mode.textContent='SIMULATION'; }
+      if(action==='live'){ if(mode)mode.textContent='LIVE'; if(cycle)cycle.textContent='LIVE / 20 HZ'; }
+      if(action==='play'){ if(cycle)cycle.textContent='RUNNING / 20 HZ'; }
+      if(action==='pause'){ if(cycle)cycle.textContent='DISPLAY HOLD'; }
+      if(action==='prev'||action==='next'){ if(cycle)cycle.textContent=action.toUpperCase()+' / STEP'; }
+    }));
+    setRoute((location.hash||'#/command-center').slice(2),false);
+    setInterval(updateRouteMetrics,500);
+  });
+})();
+</script>
+</body>
+</html>

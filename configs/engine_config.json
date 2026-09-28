@@ -1,0 +1,50 @@
+{
+  "engine_name": "DRDO-VRDE-2.2L-Turbo-AeroDiesel",
+  "displacement_litres": 2.2,
+  "cylinders": 4,
+  "rated_power_hp_sealevel": 200.0,
+  "rated_rpm": 4200.0,
+  "idle_rpm": 1400.0,
+  "max_continuous_rpm": 4000.0,
+  "compression_ratio": 17.5,
+  "turbocharged": true,
+  "max_boost_bar": 2.45,
+  "intercooled": true,
+  "altitude_power_derating": [
+    {"altitude_ft": 0, "power_hp": 200.0, "rated_boost_bar": 2.40},
+    {"altitude_ft": 10000, "power_hp": 200.0, "rated_boost_bar": 2.45},
+    {"altitude_ft": 20000, "power_hp": 150.0, "rated_boost_bar": 2.10},
+    {"altitude_ft": 30000, "power_hp": 110.0, "rated_boost_bar": 1.65}
+  ],
+  "nominal_operating_parameters": {
+    "manifold_pressure_idle_bar": 1.02,
+    "manifold_pressure_max_bar": 2.45,
+    "egt_nominal_celsius": 750.0,
+    "egt_max_continuous_celsius": 880.0,
+    "egt_alarm_celsius": 920.0,
+    "cht_nominal_celsius": 175.0,
+    "cht_max_continuous_celsius": 220.0,
+    "cht_alarm_celsius": 240.0,
+    "oil_pressure_nominal_bar": 4.5,
+    "oil_pressure_min_safe_bar": 2.0,
+    "oil_pressure_max_bar": 6.5,
+    "oil_temp_nominal_celsius": 95.0,
+    "oil_temp_max_celsius": 130.0,
+    "fuel_flow_max_lph": 38.0,
+    "fuel_flow_cruise_lph": 22.0,
+    "bus_voltage_nominal_v": 28.0,
+    "vibration_nominal_g_rms": 1.2,
+    "vibration_alarm_g_rms": 4.5
+  },
+  "sensor_specifications": {
+    "egt": { "noise_sigma_celsius": 3.5, "tau_lag_seconds": 2.0, "quantization": 0.5, "rate_hz": 5.0 },
+    "cht": { "noise_sigma_celsius": 1.8, "tau_lag_seconds": 3.5, "quantization": 0.2, "rate_hz": 5.0 },
+    "oil_pressure": { "noise_sigma_bar": 0.06, "tau_lag_seconds": 0.4, "quantization": 0.02, "rate_hz": 10.0 },
+    "oil_temp": { "noise_sigma_celsius": 0.9, "tau_lag_seconds": 4.0, "quantization": 0.1, "rate_hz": 2.0 },
+    "manifold_pressure": { "noise_sigma_bar": 0.02, "tau_lag_seconds": 0.1, "quantization": 0.01, "rate_hz": 20.0 },
+    "rpm": { "noise_sigma_rpm": 8.0, "tau_lag_seconds": 0.05, "quantization": 1.0, "rate_hz": 50.0 },
+    "fuel_flow": { "noise_sigma_lph": 0.35, "tau_lag_seconds": 0.8, "quantization": 0.05, "rate_hz": 5.0 },
+    "vibration": { "noise_sigma_g": 0.08, "tau_lag_seconds": 0.02, "quantization": 0.01, "rate_hz": 20.0 },
+    "bus_voltage": { "noise_sigma_v": 0.12, "tau_lag_seconds": 0.1, "quantization": 0.05, "rate_hz": 10.0 }
+  }
+}
