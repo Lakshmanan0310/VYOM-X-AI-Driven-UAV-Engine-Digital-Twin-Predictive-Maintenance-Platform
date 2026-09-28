@@ -1,4 +1,4 @@
-# ENGINE-TWIN: AI-Enabled Real-Time Digital Twin System for Aero Piston Engines in MALE UAVs
+# VYOM-X: AI-Driven UAV Engine Digital Twin & Predictive Maintenance Platform
 
 **Smart India Hackathon (SIH 2026)**  
 **Problem Statement ID:** SIH26054  
@@ -149,7 +149,6 @@ run_demo.bat
 # Or direct Python command:
 python main.py
 ```
-Open **http://127.0.0.1:8000** in any browser.
 
 ---
 
