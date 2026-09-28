@@ -36,3 +36,4 @@ Thumbs.db
 # Antigravity metadata
 *.metadata.json
 .vercel
+.env*
