@@ -7,7 +7,7 @@
 
 **Project Name:** VYOM-X  
 **Core Platform:** ENGINE-TWIN  
-**Website:** [dashboard-pi-beryl-44.vercel.app]  
+**Website:** dashboard-pi-beryl-44.vercel.app 
 
 ---
 
@@ -369,9 +369,9 @@ The effectiveness of these outcomes depends on model fidelity, representative te
 
 ## 11. Website and Project Links
 
-**Live Website:** [dashboard-pi-beryl-44.vercel.app]
+**Live Website:** dashboard-pi-beryl-44.vercel.app
 
-**Render backend health:** [vyom-x-engine-api.onrender.com/health]
+**Render backend health:** vyom-x-engine-api.onrender.com/health
 
 **GitHub Repository:** [https://github.com/Lakshmanan0310/VYOM-X-AI-Driven-UAV-Engine-Digital-Twin-Predictive-Maintenance-Platform]
 
